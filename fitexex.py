@@ -9,8 +9,7 @@ The data are read into self.DataTuples (time, rate [, error]).
 Conversion is done to the basic units whenever applicable.
 They do not have to be equidistant.
 The callable function is called self.funcexex().
-The derivatives are held in self.Derivatives[]
-Requires matplotlib, numpy, scipy, sys, os
+Requires matplotlib, numpy, scipy, sys, os, glob
 """
 import os #.path.
 import sys
@@ -380,24 +379,25 @@ Returns numpy.array of numpy.float64
             return None        
         if type(args[0]) in NumericalTypes:
             if self.DebugLevel >1: print("Number")
-            return self.__funcex__(args[0])
+            return self.__funcexex__(args[0])
         result = []
         if self.DebugLevel >2: print(args[0])
         for self._ii,self._tii in enumerate(args):
 #from here is can be cut            
             for self._jj in self._tii:
                 if self.DebugLevel >2: print("In call Elem ", self._jj, " in arg ", self._ii)
-                result.append(self.__funcex__(self._jj))
+                result.append(self.__funcexex__(self._jj))
 # This is split into 3 lines for debug purposes                 
 # Otherwise it can be replaced by comprehension list
-#        return np.array([self.__funcex__(self._jj) for self._jj in self._tii ]).astype(np.float64)
+#        return np.array([self.__funcexex__(self._jj) for self._jj in self._tii ]).astype(np.float64)
         return np.array(result).astype(np.float64)
         
-    def __funcex__(self, gx):
+    def __funcexex__(self, gx):
         """ 
 This is just a wrapper function, which does basic checks on parameter values.
 Returns calls separate functions, which return linear and non-linear parts.
 It is not intended to be called by user
+It operates on current values of parameters A, B, C, D, te
             Ax + B and Cexp(-exp(-D(t-te)))
             """
             # C must be >0
@@ -658,8 +658,15 @@ If no error is given, assume 1
         pass
    
         
-    def optimizeMe(self, apar):
-        if self.DebugLevel >1: print("Call in optimizeMe")
+    def calc_chi2(self, apar):
+        """
+Calculates chi2 of the current fit
+Expects list of parameters in order A, B, C, D, te
+Returns float
+Optimized in simplex Nelder-Mead algorithm
+ToDo: It needs cleaning to unify simples and LSQ calls
+        """
+        if self.DebugLevel >1: print("Call in calc_chi2")
         self.A = apar[0]
         self.B = apar[1]
         self.C = apar[2]
@@ -668,13 +675,18 @@ If no error is given, assume 1
         self.sqdiff = 0
         for self._i in range(0,self.Npoints,1):
             #print(self._i)
-            self._diff = (self.__funcex__(self.TimeExper[self._i]) - self.RelElExper[self._i])/self.ErrorExper[self._i]
+            self._diff = (self.__funcexex__(self.TimeExper[self._i]) - self.RelElExper[self._i])/self.ErrorExper[self._i]
             self.sqdiff += self._diff*self._diff
         if self.DebugLevel >2: print("In optimize sqdiff", self.sqdiff)
         self.lblchi2value.config(text="{0:>12g}".format(self.sqdiff))
         return self.sqdiff
 
     def funOptiLSQ(self,x,A,B,C,D,te):
+        """
+This function is a wrapper for LSQ fit
+Makes sure that A, C and D do not fall below 0
+ToDo: It needs cleaning to unify simples and LSQ calls
+        """
         if self.DebugLevel >1: print("Call in OptiLSQ")
         #p0 = A, p1 = B, p2 = C, p3 = D, p4 = te
         if C<0:
@@ -690,13 +702,25 @@ If no error is given, assume 1
         return A*x + B + C * np.exp(-np.exp(-D*(x-te)))
         
     def cmdLSQ(self):
+        """
+Callback funtion for button LSQ
+Fits function using curve_fit from scipy.optimize
+Plots fit result
+Prepares LSQ report
+        """
         #At + B + Cexp(-exp(-D(t-te)))
+        # Store old parameters
         self.oldA = self.A
         self.oldB = self.B
         self.oldC = self.C
         self.oldD = self.D      
         self.oldte = self.te
-        if self.DebugLevel >1: print("Before LSQ", self.optimizeMe([self.A, self.B, self.C, self.D, self.te]))
+        if self.DebugLevel >1: print("Before LSQ", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))
+        # Main fitting loop using curve_fit
+        # we use funOptiLSQ in order to keep physical values of parameters
+        # This fragment needs cleaning as I had to use a new wrapper function funOptiLSQ
+        # to match calling convention of curve_fit
+        # curve_fit calls back funOptiLSQ with x as the first parameter and all other taken from list p0
         self.popt, self.pcov = sci_opti.curve_fit(self.funOptiLSQ,
                                                   self.TimeExper,
                                                   self.RelElExper,
@@ -707,11 +731,13 @@ If no error is given, assume 1
         self.C = self.popt[2]
         self.D = self.popt[3]
         self.te = self.popt[4]
-        self.M = self.optimizeMe([self.A, self.B, self.C, self.D, self.te])
+        # Update chi2
+        self.M = self.calc_chi2([self.A, self.B, self.C, self.D, self.te])
         self.UpdateValues()
-        if self.DebugLevel >1: print("After LSQ", self.optimizeMe([self.A, self.B, self.C, self.D, self.te]))                                                  
+        if self.DebugLevel >1: print("After LSQ", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))                                                  
 
         self.PlotMe() 
+        # Prepare LSQ report
         self.LSQ4Report = []
         self._str = " **************** SOLUTION Least Squares ****************" 
         self.addInfo(self._str)
@@ -762,20 +788,24 @@ If no error is given, assume 1
         self.LSQ4Report.append(self._str)          
         pass
     
-    def LSQCycle(self):
+#    def LSQCycle(self):
         #At + B + Cexp(-exp(-D(t-t0)))
-        pass
+#        pass
     
-    def cmdfmin(self):
+    def cmdfmin(self, maxiter=1000):
+        """
+Performs initial fit using simplex Nelder-Mead algorithm
+Maximum number of iterations can be set by giving 1 parameter maxiter (defalut maxiter=1000)
+        """
         #At + B + Cexp(-exp(-D(t-t0)))
         self.oldA = self.A
         self.oldB = self.B
         self.oldC = self.C
         self.oldD = self.D       
         self.oldte = self.te
-        if self.DebugLevel >1: print("Before optimize", self.optimizeMe([self.A, self.B, self.C, self.D, self.te]))
-        sci_opti.fmin(self.optimizeMe, [self.A, self.B, self.C, self.D, self.te], maxiter=1000)
-        self._lastopti = self.optimizeMe([self.A, self.B, self.C, self.D, self.te])
+        if self.DebugLevel >1: print("Before optimize", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))
+        sci_opti.fmin(self.calc_chi2, [self.A, self.B, self.C, self.D, self.te], maxiter=maxiter)
+        self._lastopti = self.calc_chi2([self.A, self.B, self.C, self.D, self.te])
         if self.DebugLevel >1: print("After optimize", self._lastopti)
         self.UpdateValues()
         self.Simplex4Report = []
@@ -830,6 +860,7 @@ If no error is given, assume 1
         #self.filen = self.filename[self._i+1:]
         self.filen = os.path.basename(self.filename)
         self.trunk = os.path.dirname(self.filename)
+        # cut off the extension
         self._i = self.filen.rfind( '.', 0)
         self.filen = self.filen[:self._i]
         self.figname = os.path.join(self.trunk,"Fig1_"+self.filen + ".png")
