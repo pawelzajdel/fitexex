@@ -379,7 +379,7 @@ Returns numpy.array of numpy.float64
         if len(args)>2:
             if self.DebugLevel>0: print("One argument only: number or iterable")
             return None        
-        if type(args[0]) in NumericalTypes:
+        if type(args[0]) in clsFitexex.NumericalTypes:
             if self.DebugLevel >1: print("Number")
             return self.__funcexex__(args[0])
         result = []
@@ -429,7 +429,7 @@ Returns  numpy.array of numpy.float64
         if len(args)>2:
             if self.DebugLevel>0: print("One argument only: number, or compound type")
             return None        
-        if type(args[0]) in NumericalTypes:
+        if type(args[0]) in clsFitexex.NumericalTypes:
             if self.DebugLevel >1: print("Number")
             return self.__funcBack__(args[0])
         result = []
@@ -463,7 +463,7 @@ Returns  numpy.array of numpy.float64
         if len(args)>2:
             if self.DebugLevel>0: print("One argument only: number, list or array")
             return None        
-        if type(args[0]) in NumericalTypes:
+        if type(args[0]) in clsFitexex.NumericalTypes:
             if self.DebugLevel >1: print("Number")
             return self.__funcGrow__(args[0])
         result = []
