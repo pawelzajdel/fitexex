@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #Runs with Python 3.2.2
-"""
+__doc__="""
 Module clsexexFit
 Fits formula 
 Ax + B + Cexp(-exp(-D(t-te)))
@@ -29,10 +29,10 @@ matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg 
 from matplotlib import cm
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+import matplotlib.ticker as tkr
 
 #from mpl_toolkits.mplot3d.axes3D import Axes3D
-from mpl_toolkits.mplot3d import  axes3d,Axes3D
+#from mpl_toolkits.mplot3d import  axes3d,Axes3D
 import numpy as np
 import scipy as scp
 import scipy.optimize as sci_opti
@@ -59,9 +59,13 @@ else:
 
 import glob as glb
 
-class clsexexFit(tkTkinter.Tk):
+class clsFitexex(tkTkinter.Tk):
     #All numerical types, which can be passed to function
-    NumericalTypes = (int,float,np.float64,np.float32)
+    NumericalTypes = (int,float,np.float64,np.float32,np.float)
+# numpy.float32 is C compatible
+# numpy.float64 is Python compatible
+# numpy.float is what most people would use in numpy
+# in and float can be passed from python
     def __init__(self, parent):
         tkTkinter.Tk.__init__(self, parent)
         self.parent=parent
@@ -84,9 +88,10 @@ class clsexexFit(tkTkinter.Tk):
         self.UpdateValues()
 
     def ClearMe(self):
-    """ Method ClearMe\n
-        Clears and initializes variables
-    """
+        """ 
+Method ClearMe
+Clears and initializes variables
+        """
         #self.strFileName.set("")
         self.filename = ""
         self.A=0
@@ -103,6 +108,12 @@ class clsexexFit(tkTkinter.Tk):
         self.RelElExper = []
         self.ErrorExper = []
         self.Npoints = 0
+        # inEstimate informs plotting function if there is initial estimate of parameters
+        # we do not want to plot unless function will roughly fit in the window
+        # = 0 no estimate
+        # = 1 start of estimation. Set by cmdEstimate
+        # = 2 waiting for user input. Set by onClick
+        # = 3 done estimating. After returning from onClick. Set by cmdEstimate
         self.inEstimate = 0
         # For full fit
         self.t0 = 0
@@ -130,11 +141,13 @@ class clsexexFit(tkTkinter.Tk):
         self.buttstep.config(state="disabled")        
 
     def RoundMe(self, tValErr):
-        """ Method RoundMe
-            Receives 2-tuple (value,error) as np.float
-            Returns 2-tuple ("value","error" ) as string 
-            1. Brings both values to common order 
-            2. Leaves 2 decimal places in error """
+        """ 
+Method RoundMe
+Receives 2-tuple (value,error) as np.float
+Returns 2-tuple ("value","error" ) as string 
+1. Brings both values to common order
+2. Leaves 2 decimal places in error 
+        """
         self._tV = tValErr[0]
         self._tVsign = 1
         if self._tV < 0:
@@ -284,8 +297,9 @@ class clsexexFit(tkTkinter.Tk):
         self.addInfo("Hello!")
 
     def addInfo(self, info):
-    """ Method addInfo
-        Adds information to the status window
+        """ 
+Method addInfo(str)
+Adds information to the status window
         """
         self.txtInfo.insert(tkTkinter.END,info+os.linesep )
         self.txtInfo.update()
@@ -304,7 +318,12 @@ class clsexexFit(tkTkinter.Tk):
         self.PlotMe(full)
         
     def PlotMe(self, full = 0):
-        """ Plots data and fit """
+        """ 
+Method PlotMe(full=0)
+Plots data and fit 
+full=0 (default) restrict to (tmin, tmax)
+full=1 (for future use)
+"""
         #print("In plot")
         self.myfig.clf()
         self.ax1 = self.myfig.add_subplot(111)
@@ -321,24 +340,25 @@ class clsexexFit(tkTkinter.Tk):
                 self.mey.append(self._i[1])
         # if time is normalized to seconds, changes format of x-axis
         if self.tmax > 1000000:
-            self.ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%6.3g'))
+            self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%6.3g'))
         else:
-            self.ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
+            self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%d'))
         self.ax1.plot(self.mex, self.mey, "ro", label="data")
         self.ax1.plot(self.mex,self.funcexex(self.mex), "b-", label="model", linewidth = 3)
         if self.inEstimate > 1:
-            #plot functions
+            #plot functions during (=1) or after estimation of fit(=2)
+            # there is no sense in plotting functions, which are not at least partially comparable to data
             self._tx = np.linspace(self.tmin,self.tmax, 101)
             self.ax1.plot(self._tx,self.funcBack(self._tx), "c-", label="linear",linewidth = 3)
             self.ax1.plot(self._tx,self.funcGrow(self._tx), "m-", label="nonlin",linewidth = 3)
-        if full == 1: 
-            for self._i in self.DataTuples:
-                if self._i[0]<self.LowCutOff: 
-                    continue
-                else:
-                    self.mex.append(self._i[0])
-                    self.mey.append(self._i[1])
-            self.ax1.plot(self._tx,self.funcFull(self._tx), "g-", label="Full",linewidth = 3)
+#        if full == 1: 
+#            for self._i in self.DataTuples:
+#                if self._i[0]<self.LowCutOff: 
+#                    continue
+#                else:
+#                    self.mex.append(self._i[0])
+#                    self.mey.append(self._i[1])
+#            self.ax1.plot(self._tx,self.funcFull(self._tx), "g-", label="Full",linewidth = 3)
         self.ax1.axvline(x=self.te, linewidth=3, color='y')    
         #if self.LabelX != "" or self.LabelY != "":
         self.ax1.set_xlabel(self.LabelX)
@@ -348,13 +368,15 @@ class clsexexFit(tkTkinter.Tk):
 
 
     def funcexex(self, *args):
-        """ Main user callable function. 
-            Expects one numerical argument or compound type containing numbers.
-            Return  numpy array with numpy.float64  
-            Ax + B + Cexp(-exp(-D(t-te)))"""
+        """ 
+Main user-callable function. 
+Expects one numerical argument or compound type containing numbers.
+Returns numpy.array of numpy.float64 
+            Ax + B + Cexp(-exp(-D(t-te)))
+        """
         if self.DebugLevel>0: print("in funcexex")
         if len(args)>2:
-            if self.DebugLevel>0: print("One argument only: number, list or array")
+            if self.DebugLevel>0: print("One argument only: number or iterable")
             return None        
         if type(args[0]) in NumericalTypes:
             if self.DebugLevel >1: print("Number")
@@ -367,14 +389,15 @@ class clsexexFit(tkTkinter.Tk):
                 if self.DebugLevel >2: print("In call Elem ", self._jj, " in arg ", self._ii)
                 result.append(self.__funcex__(self._jj))
 # This is split into 3 lines for debug purposes                 
-# Otherwise it can be replaces by comprehension list
+# Otherwise it can be replaced by comprehension list
 #        return np.array([self.__funcex__(self._jj) for self._jj in self._tii ]).astype(np.float64)
         return np.array(result).astype(np.float64)
         
     def __funcex__(self, gx):
-        """ This is just a wrapper function, which does basic checks on parameter values.
-            Returns calls separate functions, which return linear and non-linear parts.
-            It is not intended to be called by user
+        """ 
+This is just a wrapper function, which does basic checks on parameter values.
+Returns calls separate functions, which return linear and non-linear parts.
+It is not intended to be called by user
             Ax + B and Cexp(-exp(-D(t-te)))
             """
             # C must be >0
@@ -394,14 +417,15 @@ class clsexexFit(tkTkinter.Tk):
         return  self.__funcBack__(gx)+ self.__funcGrow__(gx)
 
     def funcBack(self, *args):
-        """ User callable function for the linear part. 
-            Expects one numerical argument or compound type containing numbers.
-            Returns  numpy array with numpy.float64  
+        """ 
+User callable function for the linear part. 
+Expects one numerical argument or compound type containing numbers.
+Returns  numpy.array of numpy.float64 
             Ax + B """
         #Ax + B
         if self.DebugLevel>0: print("in funcback")
         if len(args)>2:
-            if self.DebugLevel>0: print("One argument only: number, list or array")
+            if self.DebugLevel>0: print("One argument only: number, or compound type")
             return None        
         if type(args[0]) in NumericalTypes:
             if self.DebugLevel >1: print("Number")
@@ -418,16 +442,19 @@ class clsexexFit(tkTkinter.Tk):
         return np.array(result).astype(np.float64)        
         
     def __funcBack__(self, gx):
-        """ Returns linear background for a single point.
-            Expects one argument int or float.
-            It is not meant to be called directly"""
+        """
+Returns linear background for a single point.
+Expects one numerical argument.
+It is not meant to be called directly
+        """
         #Ax + B
         return self.A*gx + self.B
         
     def funcGrow(self, *args):
-        """ User callable function for the non-linear part. 
-            Expects one numerical argument or compound type containing numbers.
-            Returns  numpy array with numpy.float64  
+        """ 
+User callable function for the non-linear part.
+Expects one numerical argument or compound type containing numbers.
+Returns  numpy.array of numpy.float64
             Cexp(-exp(-D(t-te))) """        
         #Cexp(-exp(-D(t-te)))
         if self.DebugLevel>0: print(" in funcGrow")
@@ -447,9 +474,11 @@ class clsexexFit(tkTkinter.Tk):
         return np.array(result).astype(np.float64)  
         
     def __funcGrow__(self, gx):
-        """ Returns non-lnear for a single point.
-            Expects one argument int or float.
-            It is not meant to be called directly"""
+        """
+Returns non-linear contribution for a single point.
+Expects one numerical argument.
+It is not meant to be called directly
+        """
         #Cexp(-exp(-D(t-te)))
         #if gx<= self.te:
         #    return self.C *np.exp(-1)
@@ -509,10 +538,14 @@ class clsexexFit(tkTkinter.Tk):
         pass            
         
     def cmdReadFile(self):
-        """ Method reads text file in format 
-            time, relative length, error 
-            Data is normalized to get proper scaling """
-        if self.filename != "":self.ClearMe()
+        """ 
+Method reads text file in format
+time, relative length, error
+Data is normalized to get proper scaling 
+If no error is given, assume 1
+        """
+        # Clean if opening a new file
+        if self.filename != "": self.ClearMe()
        #while self.strFileName.get()=="":
             #or not os.access(self.strFileName, os.W_OK):
         self.filename = tkFileDialog.askopenfilename(defaultextension=".dat", initialdir=".", multiple=False)
@@ -523,7 +556,8 @@ class clsexexFit(tkTkinter.Tk):
         self.lisDataFile = self.fp.readlines()
         self.fp.close()
         self._divisorL = tksimdial.askfloat("Input divisor L", "Divisor that makes the elongation data dimensionless and 1\n e.g. 10000 for micron/cm", initialvalue = str(10000))
-        self._multiT = tksimdial.askfloat("Input time factor", "Factor that cpnverts time scale into seconds\n e.g. 60 for if the time in the file is in minutes", initialvalue = str(60))
+        self._multiT = tksimdial.askfloat("Input time factor", "Factor that converts time scale into seconds\n e.g. 60 for if the time in the file is in minutes", initialvalue = str(60))
+# initialize tmin and tmax, so we can catch proper values
         self.tmax = -1*self._multiT
         self.tmin = 100*self._multiT
         # process header or until we find [Data]
@@ -582,19 +616,23 @@ class clsexexFit(tkTkinter.Tk):
 
                 
     def cmdEstimate(self):
-        """ Method estimates initial values of parameters from user visual input """
+        """ Estimates initial values of parameters from user visual input """
         if self.inEstimate == 0:
+            #starting estimation procedure
             self.B = self.RelElExper[0]
             self.C = self.RelElExper[self.Npoints-1]/2
             self.cid = self.myfig.canvas.mpl_connect('button_press_event', self.onClick)
         #scipy.misc.derivative(func, x0, dx=1.0, n=1, args=(), order=3)
             self.inEstimate = 1
+            # inEstimate will be set to 2 in self.onClick
         #self.myfig.canvas.mpl_disconnect(cid)
             self.UpdateValues()
             self.PlotMe()
             tkmb.askokcancel("Press Done when done", "Click on the point with the maximum slope")
             self.butEstim.config(text = "Done")
         elif self.inEstimate == 2:
+            # we are here only if user successfully clicks on screen and onClick callback is executed
+            # inEstimate is set to 2 in onClick
             #print(self.TimeExper)
             if self.DebugLevel > 0: print("Esti in 2")
             # find x closest to t0
@@ -786,8 +824,7 @@ class clsexexFit(tkTkinter.Tk):
         pass
         
     def cmdSaveReport(self):
-        """ This method saves fit results as a txt and HTML files\n
-        together with one png figure """
+        """ This method saves fit results as a txt and HTML files\ntogether with one png figure """
         #self._i = self.filename.rfind( '/', 0)
         #self.trunk = self.filename[:self._i+1]
         #self.filen = self.filename[self._i+1:]
@@ -816,7 +853,14 @@ class clsexexFit(tkTkinter.Tk):
         self.fhtml.close()
     
     def onClick(self,event):
-        """ Method captures user on-screen clik in order to estimate function inflection point """
+        """ 
+Callback from click event on Figure
+Method captures user on-screen clik in order to estimate function inflection point 
+Should only be called during estimation
+
+"""
+        #we should only get here if user clicks butEstimate
+        #cmdEstimate
         if self.inEstimate == 1:
             self.xpoint0 = event.x
             self.xpoint0 = event.y
@@ -824,16 +868,18 @@ class clsexexFit(tkTkinter.Tk):
             self.UpdateValues()
             self.PlotMe()
             self.inEstimate = 2
+            # stop capturing
             self.myfig.canvas.mpl_disconnect(self.cid)
             pass
         elif self.inEstimate == 2:
-            print("Esti 2")
+            #should never get here
+            self.addInfo("Esti 2. should not get here")
         else:
             if self.DebugLevel > 0: print('button={}, x={}, y={}, xdata={}, ydata={}'.format(event.button, event.x, event.y, event.xdata, event.ydata))
 
     
 if __name__ == "__main__":
-    app = clsexexFit(None)
+    app = clsFitexex(None)
     app.title('Relative growth fit PZajdel')
     # based on non-git version 3.0
     app.mainloop()
