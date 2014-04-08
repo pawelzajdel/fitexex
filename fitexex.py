@@ -2,12 +2,13 @@
 #Runs with Python 3.2.2
 """
 Module clsexexFit
-Fits Ax + B + Cexp(-exp(-D(t-te))) formula for the relative elongation of stems
+Fits formula 
+Ax + B + Cexp(-exp(-D(t-te)))
+to the relative elongation of stems.
 The data are read into self.DataTuples (time, rate [, error]).
 Conversion is done to the basic units whenever applicable.
 They do not have to be equidistant.
 The callable function is called self.funcexex().
-The equidistant time scale is in self.Timescale[]
 The derivatives are held in self.Derivatives[]
 Requires matplotlib, numpy, scipy, sys, os
 """
@@ -48,7 +49,6 @@ if inPy3:
     import tkinter.simpledialog as tksimdial
     import tkinter.filedialog as tkFileDialog
 elif inPy26 and not inPy3:
-# Comment above and uncomment below for Python 2.7
     import ScrolledText as tkScrolledText
     import tkMessageBox as tkmb
     import tkSimpleDialog as tksimdial
@@ -130,7 +130,7 @@ class clsexexFit(tkTkinter.Tk):
         self.buttstep.config(state="disabled")        
 
     def RoundMe(self, tValErr):
-        """ Method RounMe
+        """ Method RoundMe
             Receives 2-tuple (value,error) as np.float
             Returns 2-tuple ("value","error" ) as string 
             1. Brings both values to common order 
