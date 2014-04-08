@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#Runs with Python 3.2.2
+#Runs with Python 3.2
 __doc__="""
 Module clsexexFit
 Fits formula 
@@ -10,6 +10,8 @@ Conversion is done to the basic units whenever applicable.
 They do not have to be equidistant.
 The callable function is called self.funcexex().
 Requires matplotlib, numpy, scipy, sys, os, glob
+P. Zajdel, A. Haduch, M. Pietruszka
+Katowice 2013-2014
 """
 import os #.path.
 import sys
@@ -911,6 +913,6 @@ Should only be called during estimation
     
 if __name__ == "__main__":
     app = clsFitexex(None)
-    app.title('Relative growth fit PZajdel')
+    app.title('Relative growth fit P. Zajdel, A Haduch, M. Pietruszka 2014')
     # based on non-git version 3.0
     app.mainloop()
