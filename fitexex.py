@@ -10,7 +10,7 @@ Conversion is done to the basic units whenever applicable.
 They do not have to be equidistant.
 The callable function is called self.funcexex().
 Requires matplotlib, numpy, scipy, sys, os, glob
-P. Zajdel, A. Haduch, M. Pietruszka
+P. Zajdel, A. Haduch-Sendecka, M. Pietruszka
 Katowice 2013-2014
 """
 import os #.path.
@@ -777,7 +777,7 @@ Prepares LSQ report
         self._str = "stddev is one standard deviation and measures only statistical uncertainity"
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
-        self._str = "In order to get an estimate of systematic errors compare it to the results from simplex method"
+        self._str = "In order to get a better estimate of errors compare it to the results from the simplex method"
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
         self._str = "Estimated T2: {0[0]:>12} +/- {0[1]:>12} s".format(
@@ -913,6 +913,6 @@ Should only be called during estimation
     
 if __name__ == "__main__":
     app = clsFitexex(None)
-    app.title('Relative growth fit P. Zajdel, A Haduch, M. Pietruszka 2014')
+    app.title('Relative growth fit P. Zajdel, A Haduch-Sendecka, M. Pietruszka 2014')
     # based on non-git version 3.0
     app.mainloop()
