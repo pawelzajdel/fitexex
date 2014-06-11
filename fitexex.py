@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #Runs with Python 3.2
 __doc__="""
 Module clsexexFit
@@ -343,7 +343,8 @@ full=1 (for future use)
         if self.tmax > 1000000:
             self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%6.3g'))
         else:
-            self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%d'))
+            self.ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.01f'))
+        self.ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%6.3g'))
         self.ax1.plot(self.mex, self.mey, "ro", label="data")
         self.ax1.plot(self.mex,self.funcexex(self.mex), "b-", label="model", linewidth = 3)
         if self.inEstimate > 1:
@@ -547,7 +548,8 @@ Data is normalized to get proper scaling
 If no error is given, assume 1
         """
         # Clean if opening a new file
-        if self.filename != "": self.ClearMe()
+        #if self.filename != "": 
+        self.ClearMe()
        #while self.strFileName.get()=="":
             #or not os.access(self.strFileName, os.W_OK):
         self.filename = tkFileDialog.askopenfilename(defaultextension=".dat", initialdir=".", multiple=False)
@@ -915,4 +917,5 @@ if __name__ == "__main__":
     app = clsFitexex(None)
     app.title('Relative growth fit P. Zajdel, A Haduch-Sendecka, M. Pietruszka 2014')
     # based on non-git version 3.0
+    #Ver 3.01
     app.mainloop()
