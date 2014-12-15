@@ -12,6 +12,7 @@ The callable function is called self.funcexex().
 Requires matplotlib, numpy, scipy, sys, os, glob
 P. Zajdel, A. Haduch-Sendecka, M. Pietruszka
 Katowice 2013-2014
+Dec 2014 - updated due to changes in Tcl/Tk
 """
 import os #.path.
 import sys
@@ -225,6 +226,7 @@ Returns 2-tuple ("value","error" ) as string
         #print("Pre")
         #self.toolbar = NavigationToolbar2TkAgg(self.canvas, self.frame)
         self.toolbar = NavigationToolbar2TkAgg(self.canvas, self)
+        self.toolbar.grid()
         self.toolbar.update()
         #print("Post")
         self.ax1 = self.myfig.add_subplot(111)
