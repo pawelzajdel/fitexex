@@ -345,8 +345,8 @@ full=1 (for future use)
         if self.tmax > 1000000:
             self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%6.3g'))
         else:
-            self.ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.01f'))
-        self.ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%6.3g'))
+            self.ax1.xaxis.set_major_formatter(tkr.FormatStrFormatter('%.01f'))
+        self.ax1.yaxis.set_major_formatter(tkr.FormatStrFormatter('%6.3g'))
         self.ax1.plot(self.mex, self.mey, "ro", label="data")
         self.ax1.plot(self.mex,self.funcexex(self.mex), "b-", label="model", linewidth = 3)
         if self.inEstimate > 1:
@@ -848,7 +848,7 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self._str = "Estimated T2: {0:>12g} s".format(1/self.D )
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
-        self._str = "Estimated pressure difference (P-Y): {0:>12g} MPa".format(self.A/10**(-6))
+        self._str = "Estimated (P-Y)*n0: {0:>12g}".format(self.A/10**(-6))
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
 
