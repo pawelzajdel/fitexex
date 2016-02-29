@@ -11,8 +11,9 @@ They do not have to be equidistant.
 The callable function is called self.funcexex().
 Requires matplotlib, numpy, scipy, sys, os, glob
 P. Zajdel, A. Haduch-Sendecka, M. Pietruszka
-Katowice 2013-2014
+Katowice 2013-2016
 Dec 2014 - updated due to changes in Tcl/Tk
+Feb 2016 - updated due to changes in Tcl/Tk, NavigationToolbar is using pack() as default and we need grid()
 """
 import os #.path.
 import sys
@@ -74,7 +75,8 @@ class clsFitexex(tkTkinter.Tk):
         self.grid()
         self.protocol("WM_DELETE_WINDOW", self._quit)
         self.frame = tkTkinter.Frame(self)
-
+        self.toolbar_frame = tkTkinter.Frame(self)
+        self.toolbar_frame.grid()
         self.A = 0
         self.B = 0
         self.C = 1
@@ -225,9 +227,7 @@ Returns 2-tuple ("value","error" ) as string
         #self.canvas.get_tk_widget().grid(column=0, row=2, columnspan=2)
         #print("Pre")
         #self.toolbar = NavigationToolbar2TkAgg(self.canvas, self.frame)
-        self.toolbar = NavigationToolbar2TkAgg(self.canvas, self)
-        self.toolbar.grid()
-        self.toolbar.update()
+        self.toolbar = NavigationToolbar2TkAgg(self.canvas, self.toolbar_frame)
         #print("Post")
         self.ax1 = self.myfig.add_subplot(111)
         self.ax1.grid(True)
@@ -294,7 +294,7 @@ Returns 2-tuple ("value","error" ) as string
         #row 2, column 2 
         self.c=1
         self.r=1
-        self.toolbar.grid(column=self.c,row=self.r, columnspan=6, sticky=tkTkinter.N+tkTkinter.W+tkTkinter.S)
+        self.toolbar_frame.grid(column=self.c,row=self.r, columnspan=6, sticky=tkTkinter.N+tkTkinter.W+tkTkinter.S)
         self.canvas._tkcanvas.grid(column=self.c,row=2, columnspan=6, rowspan=16,sticky=tkTkinter.N+tkTkinter.E+tkTkinter.W)
         self.txtInfo.grid(column=self.c,row=2+16, columnspan=6, rowspan=3,sticky=tkTkinter.N+tkTkinter.E+tkTkinter.W)
         self.addInfo("Hello!")
