@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#Runs with Python 3.2
+#Runs with Python 3.2-3.4
 __doc__="""
 Module clsexexFit
 Fits formula 
@@ -14,6 +14,7 @@ P. Zajdel, A. Haduch-Sendecka, M. Pietruszka
 Katowice 2013-2016
 Dec 2014 - updated due to changes in Tcl/Tk
 Feb 2016 - updated due to changes in Tcl/Tk, NavigationToolbar is using pack() as default and we need grid()
+Mar 2016 - changed exp(exp()) function to avoid over and uderflow
 """
 import os #.path.
 import sys
@@ -37,6 +38,8 @@ import matplotlib.ticker as tkr
 #from mpl_toolkits.mplot3d.axes3D import Axes3D
 #from mpl_toolkits.mplot3d import  axes3d,Axes3D
 import numpy as np
+np.seterr(all = 'warn', over = 'raise', under = 'raise')
+
 import scipy as scp
 import scipy.optimize as sci_opti
 
@@ -68,7 +71,7 @@ class clsFitexex(tkTkinter.Tk):
 # numpy.float32 is C compatible
 # numpy.float64 is Python compatible
 # numpy.float is what most people would use in numpy
-# in and float can be passed from python
+# int and float can be passed from python
     def __init__(self, parent):
         tkTkinter.Tk.__init__(self, parent)
         self.parent=parent
@@ -77,15 +80,15 @@ class clsFitexex(tkTkinter.Tk):
         self.frame = tkTkinter.Frame(self)
         self.toolbar_frame = tkTkinter.Frame(self)
         self.toolbar_frame.grid()
-        self.A = 0
-        self.B = 0
-        self.C = 1
-        self.D = 1
+        self.A = np.float64(0.0)
+        self.B = np.float64(0.0)
+        self.C = np.float64(1.0)
+        self.D = np.float64(1.0)
 #        self.F = 1        
-        self.te = 0
-        self.tmin = 0
-        self.tmax = 100
-        self.tstep = 1
+        self.te = np.float64(0.0)
+        self.tmin = np.float64(0.0)
+        self.tmax = np.float64(100.0)
+        self.tstep = np.float64(1.0)
         self.DebugLevel = 0
         self.createWidgets()
         self.ClearMe()
@@ -98,15 +101,15 @@ Clears and initializes variables
         """
         #self.strFileName.set("")
         self.filename = ""
-        self.A=0
-        self.B=0
-        self.C = 1
-        self.D = 1
+        self.A = np.float64(0.0)
+        self.B = np.float64(0.0)
+        self.C = np.float64(1.0)
+        self.D = np.float64(1.0)
 #        self.F = 1
-        self.te = 0
-        self.tmin = 0
-        self.tmax = 100
-        self.tstep = 1
+        self.te = np.float64(0.0)
+        self.tmin = np.float64(0.0)
+        self.tmax = np.float64(100.0)
+        self.tstep = np.float64(1.0)
         self.DataTuples = []
         self.TimeExper = []
         self.RelElExper = []
@@ -154,7 +157,7 @@ Returns 2-tuple ("value","error" ) as string
         """
         self._tV = tValErr[0]
         self._tVsign = 1
-        if self._tV < 0:
+        if self._tV < 0.0:
             self._tVsign = -1
             self._tV = -self._tV
         self._tE = tValErr[1]
@@ -315,7 +318,7 @@ Adds information to the status window
         self.quit()
     
     def PlotMeBut(self, full = 0):
-        """ Callback from PlotMe button. Allows to change labels of axes """
+        """ Callback from PlotMe button. Allows to change labels of the axes """
         self.LabelX = tksimdial.askstring("X Label", "X Label", initialvalue=self.LabelX)
         self.LabelY = tksimdial.askstring("Y Label", "Y Label", initialvalue=self.LabelY)
         self.PlotMe(full)
@@ -370,7 +373,6 @@ full=1 (for future use)
         plt.legend(loc=2)
         self.canvas.show()
 
-
     def funcexex(self, *args):
         """ 
 Main user-callable function. 
@@ -406,20 +408,20 @@ It operates on current values of parameters A, B, C, D, te
             Ax + B and Cexp(-exp(-D(t-te)))
             """
             # C must be >0
-        if self.C<0:
+        if self.C<0.0:
             if self.DebugLevel>1: print("C under 0, correcting")
-            self.C = 0.0000001
+            self.C = np.float64(0.0000001)
             # D must be >0            
-        if self.D<0:
-            self.D = 0.0000001
+        if self.D<0.0:
+            self.D = np.float64(0.0000001)
             if self.DebugLevel>1: print("D under 0, correcting")         
-        #if self.B<0: self.B = 0
+        if self.B<0.0: self.B = np.float64(0.0)
         # A should not be < 0
         # if you are sure that you need A < 0, comment out those lines
-        if self.A<0:
-            self.A = 0
+        if self.A<0.0:
+            self.A = np.float64(0.0)
             if self.DebugLevel>1: print("A under 0, correcting")
-        return  self.__funcBack__(gx)+ self.__funcGrow__(gx)
+        return  self.__funcBack__(gx) + self.__funcGrowParmsCDte__(gx, self.C, self.D, self.te)
 
     def funcBack(self, *args):
         """ 
@@ -453,42 +455,89 @@ Expects one numerical argument.
 It is not meant to be called directly
         """
         #Ax + B
-        return self.A*gx + self.B
+        return self.A * np.float64(gx) + self.B
         
     def funcGrow(self, *args):
         """ 
 User callable function for the non-linear part.
 Expects one numerical argument or compound type containing numbers.
+Optionally C, D, te
 Returns  numpy.array of numpy.float64
             Cexp(-exp(-D(t-te))) """        
         #Cexp(-exp(-D(t-te)))
         if self.DebugLevel>0: print(" in funcGrow")
-        if len(args)>2:
-            if self.DebugLevel>0: print("One argument only: number, list or array")
+        if not (len(args)==1 or len(args)==4):
+            if self.DebugLevel>0: print("Wrong number of parms")
             return None        
         if type(args[0]) in clsFitexex.NumericalTypes:
             if self.DebugLevel >1: print("Number")
-            return self.__funcGrow__(args[0])
+            if len(args)==1: return self.__funcGrowParmsCDte__(args[0], self.C, self.D, self.te)
+            if len(args)==4:
+                return self.__funcGrowParmsCDte__(args[0],args[1],args[2],args[3])
         result = []
         if self.DebugLevel >2: print(args[0])
-        for self._ii,self._tii in enumerate(args):
-            for self._jj in self._tii:
-                if self.DebugLevel >2: print("In call Elem ", self._jj, " in arg ", self._ii)
-                result.append(self.__funcGrow__(self._jj))
+        for self._jj in args[0]:
+            if self.DebugLevel >2: print("In call Elem ", self._jj, " in arg[0] ")
+            if len(args)==1: 
+                result.append(self.__funcGrowParmsCDte__(self._jj, self.C, self.D, self.te))
+            if len(args)==4: 
+                result.append(self.__funcGrowParmsCDte__(self._jj, args[1],args[2],args[3]))
+
                 pass
-        return np.array(result).astype(np.float64)  
+        return np.array(result).astype(np.float64) 
         
-    def __funcGrow__(self, gx):
+    def __funcGrowParmsCDte__(self, gx, c,d,te):
         """
 Returns non-linear contribution for a single point.
-Expects one numerical argument.
+Expects one numerical argument and C, D, te
 It is not meant to be called directly
         """
         #Cexp(-exp(-D(t-te)))
-        #if gx<= self.te:
-        #    return self.C *np.exp(-1)
-        #else:
-        return self.C * np.exp(-np.exp(-self.D*(gx-self.te)))
+        gx = np.float64(gx)
+        c = np.float64(c)
+        d = np.float64(d)
+        te = np.float64(te)
+        arg = - d *(gx - te)
+        if arg > 6.5:
+            #The inner exp returns large positive value in gx2
+            # then the outer exp gets -gx2
+            # and the outer exp returns 0
+            #print("Inner arg > 7")
+            return np.float64(0.0)
+        elif arg < -700.0:
+            #The inner exp returns 0
+            #it is multiplied by a neg coeff
+            #the outer exp will return 1          
+            return c * np.float64(1.0) 
+         
+        try:
+        	gx2 = np.exp(arg)
+    #		pass
+        except FloatingPointError as err:
+            print("Should never be here")
+            quit()
+       # here gx2 should be calculated without erros  
+        if gx2 > 700:
+            #underflow will occur in outer exp for 710
+            # should be covered above
+            return np.float64(0.0)
+        try:
+        	grow = c * np.exp(-gx2)
+    #		pass
+        except FloatingPointError as err:
+            print('Uncatched Overflow or Underflow in __funcgrow__: ' + str(err))
+            quit()
+
+        return grow
+
+#    def __funcGrow__(self, gx):
+#        """
+#Returns non-linear contribution for a single point.
+#Expects one numerical argument.
+#It is not meant to be called directly
+#        """
+
+#        return self.C * np.exp(-np.exp(-self.D*(gx-self.te)))
  
         
     def UpdateValues(self):
@@ -697,15 +746,15 @@ ToDo: It needs cleaning to unify simples and LSQ calls
         #p0 = A, p1 = B, p2 = C, p3 = D, p4 = te
         if C<0:
             if self.DebugLevel>1: print("C under 0, correcting")
-            C = 0.0000001
+            C = np.float64(0.0000001)
         if D<0:
-            D = 0.0000001
+            D = np.float64(0.0000001)
             if self.DebugLevel>1: print("D under 0, correcting")          
-        #if self.B<0: self.B = 0
+        if self.B<0: self.B = np.float64(0.0)
         if A<0:
-            A = 0
+            A = np.float64(0.0)
             if self.DebugLevel>1: print("A under 0, correcting")        
-        return A*x + B + C * np.exp(-np.exp(-D*(x-te)))
+        return A*x + B + self.funcGrow(x,C,D,te)
         
     def cmdLSQ(self):
         """
@@ -788,7 +837,7 @@ Prepares LSQ report
             self.RoundMe((1/self.D,1/self.D**2 * np.sqrt(self.pcov[3][3]) ) ))
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
-        self._str = "Estimated pressure difference (P-Y): {0[0]:>12} +/- {0[1]:>12} MPa".format(
+        self._str = "Estimated (P-Y)n0: {0[0]:>12} +/- {0[1]:>12} MPa".format(
             self.RoundMe((self.A/10**(-6),np.sqrt(self.pcov[0][0])/10**(-6) ) ))
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)          
@@ -919,5 +968,5 @@ if __name__ == "__main__":
     app = clsFitexex(None)
     app.title('Relative growth fit P. Zajdel, A Haduch-Sendecka, M. Pietruszka 2014')
     # based on non-git version 3.0
-    #Ver 3.01
+    #Ver 4.0
     app.mainloop()
