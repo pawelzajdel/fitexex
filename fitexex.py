@@ -15,6 +15,7 @@ Katowice 2013-2016
 Dec 2014 - updated due to changes in Tcl/Tk
 Feb 2016 - updated due to changes in Tcl/Tk, NavigationToolbar is using pack() as default and we need grid()
 Mar 2016 - changed exp(exp()) function to avoid over and uderflow
+Nov 2016 - added tangent line at te
 """
 import os #.path.
 import sys
@@ -321,6 +322,7 @@ Adds information to the status window
         """ Callback from PlotMe button. Allows to change labels of the axes """
         self.LabelX = tksimdial.askstring("X Label", "X Label", initialvalue=self.LabelX)
         self.LabelY = tksimdial.askstring("Y Label", "Y Label", initialvalue=self.LabelY)
+        full = tksimdial.askinteger("Plot type", "0 - no tangent\n 1 - with tangent", initialvalue=1)
         self.PlotMe(full)
         
     def PlotMe(self, full = 0):
@@ -328,7 +330,7 @@ Adds information to the status window
 Method PlotMe(full=0)
 Plots data and fit 
 full=0 (default) restrict to (tmin, tmax)
-full=1 (for future use)
+full=1 with tangent line
 """
         #print("In plot")
         self.myfig.clf()
@@ -368,6 +370,16 @@ full=1 (for future use)
 #            self.ax1.plot(self._tx,self.funcFull(self._tx), "g-", label="Full",linewidth = 3)
         self.ax1.axvline(x=self.te, linewidth=3, color='y')    
         #if self.LabelX != "" or self.LabelY != "":
+        # ******************** UPDATE from here
+        self.tanga = self.A + self.C * self.D / np.e        
+        self.tangb = self.B + self.C/np.e*(1.0 - self.D * self.te)        
+        self.tint = - (self.tangb)/(self.tanga)                
+        if full == 1:            
+            #Tangent line y = ax + b            
+            self._tx = np.linspace(self.tint, 2*self.te-self.tint, 51)            
+            self.ax1.plot(self._tx,self.tanga*self._tx+self.tangb, "g--",linewidth = 2)            
+            self.ax1.axvline(x=self.tint, linewidth=3, color='g')             
+            # End Tangent Line
         self.ax1.set_xlabel(self.LabelX)
         self.ax1.set_ylabel(self.LabelY)
         plt.legend(loc=2)
@@ -791,7 +803,7 @@ Prepares LSQ report
         self.UpdateValues()
         if self.DebugLevel >1: print("After LSQ", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))                                                  
 
-        self.PlotMe() 
+        self.PlotMe(full=1) 
         # Prepare LSQ report
         self.LSQ4Report = []
         self._str = " **************** SOLUTION Least Squares ****************" 
@@ -827,6 +839,9 @@ Prepares LSQ report
         self._str = "te = {0[0]:>12}, stddev {0[1]:>12} seconds ".format( self.RoundMe((self.te,np.sqrt(self.pcov[4][4])))  )
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
+        self._str = "tint = {0[0]:>12} seconds ".format( self.tint)        
+        self.addInfo(self._str)        
+        self.LSQ4Report.append(self._str) 
         self._str = "stddev is one standard deviation and measures only statistical uncertainity"
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
@@ -894,6 +909,9 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self._str = "te = {:>12g} seconds".format(self.te) 
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)       
+        self._str = "tint = {:>12g} seconds".format(self.tint)         
+        self.addInfo(self._str)        
+        self.Simplex4Report.append(self._str)       
         self._str = "Estimated T2: {0:>12g} s".format(1/self.D )
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
@@ -902,7 +920,7 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self.Simplex4Report.append(self._str)
 
         self.butLSQ.config(state="normal")
-        self.PlotMe()
+        self.PlotMe(full=1)
         self.butSaveReport.config(state="normal")
 
 
