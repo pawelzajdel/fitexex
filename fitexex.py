@@ -16,6 +16,7 @@ Dec 2014 - updated due to changes in Tcl/Tk
 Feb 2016 - updated due to changes in Tcl/Tk, NavigationToolbar is using pack() as default and we need grid()
 Mar 2016 - changed exp(exp()) function to avoid over and uderflow
 Nov 2016 - added tangent line at te
+May 2017 - rescaling of the y-axis
 """
 import os #.path.
 import sys
@@ -132,6 +133,8 @@ Clears and initializes variables
         self.LowCutOff = 0
         self.LabelX = ""
         self.LabelY = ""
+        self.MinY = "0"
+        self.MaxY = "0"
         # end of parameters for full fit
         self.butPlot.config(state="disabled")
         self.butEstim.config(state="disabled")
@@ -322,6 +325,8 @@ Adds information to the status window
         """ Callback from PlotMe button. Allows to change labels of the axes """
         self.LabelX = tksimdial.askstring("X Label", "X Label", initialvalue=self.LabelX)
         self.LabelY = tksimdial.askstring("Y Label", "Y Label", initialvalue=self.LabelY)
+        self.MinY = tksimdial.askfloat("Min Y", "Min Y", initialvalue = str(self.ax1.get_ylim()[0]))
+        self.MaxY = tksimdial.askfloat("Max Y", "Max Y", initialvalue = str(self.ax1.get_ylim()[1]))
         full = tksimdial.askinteger("Plot type", "0 - no tangent\n 1 - with tangent", initialvalue=1)
         self.PlotMe(full)
         
@@ -368,20 +373,22 @@ full=1 with tangent line
 #                    self.mex.append(self._i[0])
 #                    self.mey.append(self._i[1])
 #            self.ax1.plot(self._tx,self.funcFull(self._tx), "g-", label="Full",linewidth = 3)
-        self.ax1.axvline(x=self.te, linewidth=3, color='y')    
+        self.ax1.axvline(x=self.te, linewidth=3, color='y')
         #if self.LabelX != "" or self.LabelY != "":
         # ******************** UPDATE from here
-        self.tanga = self.A + self.C * self.D / np.e        
-        self.tangb = self.B + self.C/np.e*(1.0 - self.D * self.te)        
-        self.tint = - (self.tangb)/(self.tanga)                
-        if full == 1:            
+        self.tanga = self.A + self.C * self.D / np.e
+        self.tangb = self.B + self.C/np.e*(1.0 - self.D * self.te)
+        self.tint = - (self.tangb)/(self.tanga) 
+        if full == 1:
             #Tangent line y = ax + b            
-            self._tx = np.linspace(self.tint, 2*self.te-self.tint, 51)            
-            self.ax1.plot(self._tx,self.tanga*self._tx+self.tangb, "g--",linewidth = 2)            
-            self.ax1.axvline(x=self.tint, linewidth=3, color='g')             
+            self._tx = np.linspace(self.tint, 2*self.te-self.tint, 51)
+            self.ax1.plot(self._tx,self.tanga*self._tx+self.tangb, "g--",linewidth = 2)
+            self.ax1.axvline(x=self.tint, linewidth=3, color='g')
             # End Tangent Line
         self.ax1.set_xlabel(self.LabelX)
         self.ax1.set_ylabel(self.LabelY)
+        if self.MinY != "0" and self.MaxY != "0":
+            self.ax1.set_ylim(float(self.MinY),float(self.MaxY))
         plt.legend(loc=2)
         self.canvas.show()
 
@@ -426,7 +433,7 @@ It operates on current values of parameters A, B, C, D, te
             # D must be >0            
         if self.D<0.0:
             self.D = np.float64(0.0000001)
-            if self.DebugLevel>1: print("D under 0, correcting")         
+            if self.DebugLevel>1: print("D under 0, correcting")
         if self.B<0.0: self.B = np.float64(0.0)
         # A should not be < 0
         # if you are sure that you need A < 0, comment out those lines
@@ -675,7 +682,7 @@ If no error is given, assume 1
         self.butA.config(state="normal")
         self.butB.config(state="normal")
         self.butC.config(state="normal")
-        self.butD.config(state="normal")        
+        self.butD.config(state="normal")
         self.butt0.config(state="normal")
         self.buttmax.config(state="normal")
         self.buttmin.config(state="normal")
@@ -738,7 +745,7 @@ ToDo: It needs cleaning to unify simples and LSQ calls
         self.B = apar[1]
         self.C = apar[2]
         self.D = apar[3]
-        self.te = apar[4]       
+        self.te = apar[4]
         self.sqdiff = 0
         for self._i in range(0,self.Npoints,1):
             #print(self._i)
@@ -761,11 +768,11 @@ ToDo: It needs cleaning to unify simples and LSQ calls
             C = np.float64(0.0000001)
         if D<0:
             D = np.float64(0.0000001)
-            if self.DebugLevel>1: print("D under 0, correcting")          
+            if self.DebugLevel>1: print("D under 0, correcting")
         if self.B<0: self.B = np.float64(0.0)
         if A<0:
             A = np.float64(0.0)
-            if self.DebugLevel>1: print("A under 0, correcting")        
+            if self.DebugLevel>1: print("A under 0, correcting")
         return A*x + B + self.funcGrow(x,C,D,te)
         
     def cmdLSQ(self):
@@ -780,7 +787,7 @@ Prepares LSQ report
         self.oldA = self.A
         self.oldB = self.B
         self.oldC = self.C
-        self.oldD = self.D      
+        self.oldD = self.D
         self.oldte = self.te
         if self.DebugLevel >1: print("Before LSQ", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))
         # Main fitting loop using curve_fit
@@ -820,22 +827,22 @@ Prepares LSQ report
         self.LSQ4Report.append(self._str)
         self._str = "Formula At + B + Cexp(-exp(-D(t-te)))"
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str) 
         self._str = "Results of Levenberg-Marquardt:"
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str)
         self._str = "A = {0[0]:>12}, stddev {0[1]:>12} seconds^-1".format( self.RoundMe((self.A,np.sqrt(self.pcov[0][0]) ))) 
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str)
         self._str = "B = {0[0]:>12}, stddev {0[1]:>12} dimensionless".format( self.RoundMe((self.B,np.sqrt(self.pcov[1][1]) )))  
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str)
         self._str = "C = {0[0]:>12}, stddev {0[1]:>12} dimensionless".format( self.RoundMe((self.C,np.sqrt(self.pcov[2][2]) ) )) 
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str)
         self._str = "D = {0[0]:>12}, stddev {0[1]:>12} seconds^-1".format( self.RoundMe((self.D,np.sqrt(self.pcov[3][3]) ) ))
         self.addInfo(self._str)
-        self.LSQ4Report.append(self._str)        
+        self.LSQ4Report.append(self._str)
         self._str = "te = {0[0]:>12}, stddev {0[1]:>12} seconds ".format( self.RoundMe((self.te,np.sqrt(self.pcov[4][4])))  )
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
@@ -871,7 +878,7 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self.oldA = self.A
         self.oldB = self.B
         self.oldC = self.C
-        self.oldD = self.D       
+        self.oldD = self.D
         self.oldte = self.te
         if self.DebugLevel >1: print("Before optimize", self.calc_chi2([self.A, self.B, self.C, self.D, self.te]))
         sci_opti.fmin(self.calc_chi2, [self.A, self.B, self.C, self.D, self.te], maxiter=maxiter)
@@ -908,10 +915,10 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self.Simplex4Report.append(self._str)
         self._str = "te = {:>12g} seconds".format(self.te) 
         self.addInfo(self._str)
-        self.Simplex4Report.append(self._str)       
-        self._str = "tint = {:>12g} seconds".format(self.tint)         
+        self.Simplex4Report.append(self._str)
+        self._str = "tint = {:>12g} seconds".format(self.tint)
         self.addInfo(self._str)        
-        self.Simplex4Report.append(self._str)       
+        self.Simplex4Report.append(self._str)
         self._str = "Estimated T2: {0:>12g} s".format(1/self.D )
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
