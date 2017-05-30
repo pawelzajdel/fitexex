@@ -16,7 +16,7 @@ Dec 2014 - updated due to changes in Tcl/Tk
 Feb 2016 - updated due to changes in Tcl/Tk, NavigationToolbar is using pack() as default and we need grid()
 Mar 2016 - changed exp(exp()) function to avoid over and uderflow
 Nov 2016 - added tangent line at te
-May 2017 - rescaling of the y-axis
+May 2017 - rescaling of the y-axis and the x-axis
 """
 import os #.path.
 import sys
@@ -135,6 +135,8 @@ Clears and initializes variables
         self.LabelY = ""
         self.MinY = "0"
         self.MaxY = "0"
+        self.MinX = "0"
+        self.MaxX = "0"        
         # end of parameters for full fit
         self.butPlot.config(state="disabled")
         self.butEstim.config(state="disabled")
@@ -326,7 +328,9 @@ Adds information to the status window
         self.LabelX = tksimdial.askstring("X Label", "X Label", initialvalue=self.LabelX)
         self.LabelY = tksimdial.askstring("Y Label", "Y Label", initialvalue=self.LabelY)
         self.MinY = tksimdial.askfloat("Min Y", "Min Y", initialvalue = str(self.ax1.get_ylim()[0]))
-        self.MaxY = tksimdial.askfloat("Max Y", "Max Y", initialvalue = str(self.ax1.get_ylim()[1]))
+        self.MaxY = tksimdial.askfloat("Max Y", "Max Y", initialvalue = str(self.ax1.get_ylim()[1])
+        self.MinX = tksimdial.askfloat("Min X", "Min X", initialvalue = str(self.ax1.get_xlim()[0]))
+        self.MaxX = tksimdial.askfloat("Max X", "Max X", initialvalue = str(self.ax1.get_xlim()[1]))
         full = tksimdial.askinteger("Plot type", "0 - no tangent\n 1 - with tangent", initialvalue=1)
         self.PlotMe(full)
         
@@ -389,6 +393,8 @@ full=1 with tangent line
         self.ax1.set_ylabel(self.LabelY)
         if self.MinY != "0" and self.MaxY != "0":
             self.ax1.set_ylim(float(self.MinY),float(self.MaxY))
+        if self.MinX != "0" and self.MaxX != "0":
+            self.ax1.set_xlim(float(self.MinX),float(self.MaxX))  
         plt.legend(loc=2)
         self.canvas.show()
 
@@ -846,8 +852,8 @@ Prepares LSQ report
         self._str = "te = {0[0]:>12}, stddev {0[1]:>12} seconds ".format( self.RoundMe((self.te,np.sqrt(self.pcov[4][4])))  )
         self.addInfo(self._str)
         self.LSQ4Report.append(self._str)
-        self._str = "tint = {0[0]:>12} seconds ".format( self.tint)        
-        self.addInfo(self._str)        
+        self._str = "tint = {0[0]:>12} seconds ".format( self.tint)
+        self.addInfo(self._str)
         self.LSQ4Report.append(self._str) 
         self._str = "stddev is one standard deviation and measures only statistical uncertainity"
         self.addInfo(self._str)
@@ -917,7 +923,7 @@ Maximum number of iterations can be set by giving 1 parameter maxiter (defalut m
         self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
         self._str = "tint = {:>12g} seconds".format(self.tint)
-        self.addInfo(self._str)        
+        self.addInfo(self._str)
         self.Simplex4Report.append(self._str)
         self._str = "Estimated T2: {0:>12g} s".format(1/self.D )
         self.addInfo(self._str)
